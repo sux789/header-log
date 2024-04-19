@@ -1,0 +1,22 @@
+{
+    "name": "sux789/header-log",
+    "description": "dev php header log in  my ways",
+    "type": "library",
+    "require": {
+        "firephp/firephp-core": "^0.5.3"
+    },
+    "license": "MIT",
+    "autoload": {
+        "psr-4": {
+            "Sux789\\HeaderLog\\": "src/"
+        }
+    },
+    "authors": [
+        {
+            "name": "苏翔",
+            "email": "xiang.su@qq.com"
+        }
+    ],
+    "version": "1.0.0-stable.1",
+    "minimum-stability": "stable"
+}
