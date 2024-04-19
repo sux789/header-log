@@ -11,113 +11,66 @@ use FB;
 
 class HeaderLog
 {
-    const MAX_VAR_LEN = 300; // 防止输出过多变量导致502错误
+    const MAX_VAR_LEN = 300;
     const LOG_AT_LEN = 30;
-    /**
-     * Debug开关,默认为关闭
-     */
-    static $open = false;
+    // Debug status and instance
+    private static $open = false;
+
+    // Tables for logging
+    private static $timeTable = [];
+    private static $logTable = [];
+    private static $dbTable = [];
+    private static $cacheTable = [];
+    private static $serviceTable = [];
+
+    // Begin time and debug level
+    private static $beginTime;
+    private static $cache_total_times = 0;
 
     /**
-     * Debug类实例化对象
+     * Starts the debugging.
      */
-    static $instance = false;
-    /**
-     * 运行时间显示数组
-     */
-    static $timeTable = array();
-    /**
-     * 用户自定义中间变量显示数组
-     */
-    static $logTable = array();
-    /**
-     * 数据库查询执行时间数组
-     */
-    static $dbTable = array();
-
-    /**
-     * 缓存查询执行时间数组
-     */
-    static $cacheTable = array();
-
-    /**
-     * 服务调用
-     */
-    static $serviceTable = array();
-
-    /**
-     * 起始时间
-     */
-    static $beginTime;
-    /**
-     * debug显示级别
-     */
-    static $debugLevel;
-
-
-    /**
-     * 启动debug类
-     * @param $debug_level 调试级别
-     * @param $return 返回所有header为数组（需要手工维护header时，如：非fpm/wcgi环境）
-     * @return null
-     */
-    public static function start($return = false)
+    public static function start()
     {
-
         self::$open = true;
-        self::$beginTime = microtime();
-        self::$timeTable = [];
-
-        self::$cacheTable = [];
-        self::$dbTable = [];
-        self::$serviceTable = [];
+        self::$beginTime = microtime(true);
     }
 
+    /**
+     * Checks if debug is open.
+     * @return bool Debug status.
+     */
     static function isOpen()
     {
         return self::$open && self::isInFirePHP();
     }
 
     /**
-     * 关闭调试
-     * @return bool 返回修改之前的状态值
+     * Stops the debugging.
+     * @return bool Previous state.
      */
     public static function stop()
     {
         $old = self::$open;
         self::$open = false;
         return $old;
-
     }
 
 
     /**
-     * 获得从起始时间到目前为止所花费的时间
-     * @return int
+     * Gets the time elapsed since start.
+     * @return float Elapsed time.
      */
     public static function getTime()
     {
-        list($pusec, $psec) = explode(" ", self::$beginTime);
-        list($usec, $sec) = explode(" ", microtime());
-        return ((float)$usec - (float)$pusec) + ((float)$sec - (float)$psec);
+        return microtime(true) - self::$beginTime;
     }
 
     /**
-     * 返回debug类的实例
-     * @return object
-     */
-    public static function getInstance()
-    {
-
-        return self::$instance = self::$instance ?: new self();
-    }
-
-    /**
-     * 记录用户自定义变量
-     * @param string $label 自定义变量显示名称
-     * @param mixed $results 自定义变量结果
-     * @param string $callfile 调用记录用户自定义变量的文件名
-     * @return null
+     * Logs a custom message.
+     * @param string $label Message label.
+     * @param mixed $results Message content.
+     * @param int $level Backtrace level.
      */
     public static function log($label, $results = 'Temporary Value', $level = 0)
     {
@@ -140,37 +93,16 @@ class HeaderLog
         if ($results === 'Temporary Value') {
             array_push(self::$logTable, array('[临时调试]', $label, $callerAt));
         } else {
-            if (is_string($results) && mb_detect_encoding($results, 'UTF-8') !== 'UTF-8') {
-                $results = '非UTF-8编码，长度：' . strlen($results);
-            }
             array_push(self::$logTable, array($callerAt, $label, $results));
         }
     }
 
 
-    static function getLogAt($input, $level = 0)
-    {
-        $delimiter = '/';
-        $file = '';
-
-        if (isset($input['file'])) {
-            $file = $input['file'];
-        } else {
-            $file = isset($input['class']) ?$input['class']:'';
-        }
-        $arr = explode($delimiter, $file);
-        $count = count($arr);
-        $shortFile = (isset($arr[$count - 2]) ?$arr[$count - 2]: '') . '/' . $arr[$count - 1];
-        return "$shortFile:$input[line]";
-    }
-
     /**
      * 记录数据库查询操作执行时间
-     * @param $ip
-     * @param $database
-     * @param $sql
-     * @param $times
-     * @param $results
+     * @param string $sql
+     * @param float $times
+     * @param mixed $results
      */
     public static function db($times, $sql, $ext)
     {
@@ -233,7 +165,6 @@ class HeaderLog
      * @param string $key 缓存所使用的key
      * @param float $times 花费时间
      * @param mixed $results 查询结果
-     * @return null
      */
     public static function cache($server, $key, $times, $results, $method = null)
     {
@@ -248,7 +179,6 @@ class HeaderLog
      * 记录程序执行时间
      * @param string $desc 描述
      * @param mixed $results 结果
-     * @return null
      */
     public static function time($desc = '', $caller = '')
     {
