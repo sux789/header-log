@@ -100,29 +100,25 @@ class HeaderLog
 
     /**
      * 记录数据库查询操作执行时间
-     * @param string $sql
      * @param float $times
-     * @param mixed $results
+     * @param string $sql
+     * @param mixed $ext
      */
     public static function db($times, $sql, $ext)
     {
         if (self::isOpen()) {
             array_push(self::$dbTable, array($times, $sql, $ext));
-            /*if (is_string($ip) && strlen($ip) > 24) $ip = substr($ip, 0, 24) . '..';
-
-            if (is_string($results) && strlen($results) > 256) $results = substr($results, 0, 256) . '...(length:' . strlen($results) . ')';
-            array_push(self::$dbTable, array($ip, $database, $times, $sql, $results));*/
         }
     }
 
     /**
      * 记录service调用情况
-     * @param $times
-     * @param $service
-     * @param $method
-     * @param $args
+     * @param float $times
+     * @param string $service
+     * @param string $method
+     * @param array $args
      * @param string $cache
-     * @param null $results
+     * @param mixed $results
      */
     public static function service($times, $service, $method, $args, $cache = '', $results = null)
     {
@@ -135,6 +131,8 @@ class HeaderLog
 
     /**
      * 大数据量只显示部分
+     * @param mixed $results
+     * @return string|mixed
      */
     static function formatResult($results)
     {
@@ -168,7 +166,7 @@ class HeaderLog
      */
     public static function cache($server, $key, $times, $results, $method = null)
     {
-        if (false === self::$open || (defined('DEBUG_SHOW_CACHE') && !DEBUG_SHOW_CACHE)) {
+        if (false === self::$open) {
             return;
         }
         if (is_string($results) && strlen($results) > 256) $results = substr($results, 0, 256) . '...(length:' . strlen($results) . ')';
@@ -176,9 +174,9 @@ class HeaderLog
     }
 
     /**
-     * 记录程序执行时间
-     * @param string $desc 描述
-     * @param mixed $results 结果
+     * Records program execution time.
+     * * @param string $desc Description
+     * * @param mixed $caller $caller
      */
     public static function time($desc = '', $caller = '')
     {
@@ -197,10 +195,10 @@ class HeaderLog
     }
 
     /**
-     * 判断客户端
+     * Checks if the client is using FirePHP.
      * 修改目的： 1，线上调试更为安全，只有firephp打开而且使用中其面板情况下，才进行调试
      *          2，如果滥用，导致header过大502 Bad Gateway,只会影响打开使用firephp面板的当前session
-     * HTTP_USER_AGENT 是以前逻辑，HTTP_X_FIREPHP_VERSION是下面选项逻辑，HTTP_X_WF_PROTOCOL_1调试结果逻辑
+     * HTTP_USER_AGENT 是以前逻辑，HTTP_X_FIREPHP_VERSION是下面选项逻辑，HTTP_X_WF_PROTOCOL_1调试结果逻辑，参考下面浏览器插件选项
      * Enable UserAgent Request Header - Modifies the User-Agent request header by appending FirePHP/0.5.
      * Enable FirePHP Request Header - Adds a X-FirePHP-Version: 0.4 request header.
      */
@@ -231,33 +229,38 @@ class HeaderLog
         // 执行时间
         if (count(self::$timeTable)) {
             array_unshift(self::$timeTable, ['Description', 'Time', 'Caller']);
-            FB::table('This Page Spend Times ' . self::getTime(), self::$timeTable);
+            self::sendToFb('This Page Spend Times ' . self::getTime(), self::$timeTable);
         }
 
         if ($count = count(self::$logTable)) {
             array_unshift(self::$logTable, ['file:line', 'Label', 'debug变量结果']);
-            FB::table("Custom Log Object $count", self::$logTable);
+            self::sendToFb("Custom Log Object $count", self::$logTable);
         }
 
 
         // 数据执行时间
         if ($count = count(self::$dbTable)) {
             $totalTimeSpent = array_sum(array_column(self::$dbTable, 0));
-            array_unshift(self::$dbTable, array('耗时', 'sql', '所属服务'));
-            FB::table($count . ' SQL queries took ' . $totalTimeSpent . ' seconds', self::$dbTable);
+            array_unshift(self::$dbTable, array('耗时', 'sql'));
+            self::sendToFb($count . ' SQL queries took ' . $totalTimeSpent . ' seconds', self::$dbTable);
         }
 
         //Cache执行时间
         if (count(self::$cacheTable) > 0) {
-            FB::table(self::$cacheTable, self::$cache_total_times);
+            self::sendToFb(self::$cacheTable, self::$cache_total_times);
         }
 
         // 服务执行时间
         if ($count = count(self::$serviceTable)) {
             $totalTimeSpent = array_sum(array_column(self::$serviceTable, 0));
             array_unshift(self::$serviceTable, array('耗时', 'Service', 'Method', '参数', '命中缓存|事务', 'Results'));
-            FB::table("{$count}服务执行{$totalTimeSpent}秒", self::$serviceTable);
+            self::sendToFb("{$count}服务执行{$totalTimeSpent}秒", self::$serviceTable);
         }
 
+    }
+
+    static function sendToFb($lable, $data = [])
+    {
+        FB::table($lable, $data);
     }
 }
