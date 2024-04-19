@@ -229,12 +229,12 @@ class HeaderLog
         // 执行时间
         if (count(self::$timeTable)) {
             array_unshift(self::$timeTable, ['Description', 'Time', 'Caller']);
-            self::sendToFb('This Page Spend Times ' . self::getTime(), self::$timeTable);
+            self::sendToFB('This Page Spend Times ' . self::getTime(), self::$timeTable);
         }
 
         if ($count = count(self::$logTable)) {
             array_unshift(self::$logTable, ['file:line', 'Label', 'debug变量结果']);
-            self::sendToFb("Custom Log Object $count", self::$logTable);
+            self::sendToFB("Custom Log Object $count", self::$logTable);
         }
 
 
@@ -242,24 +242,32 @@ class HeaderLog
         if ($count = count(self::$dbTable)) {
             $totalTimeSpent = array_sum(array_column(self::$dbTable, 0));
             array_unshift(self::$dbTable, array('耗时', 'sql'));
-            self::sendToFb($count . ' SQL queries took ' . $totalTimeSpent . ' seconds', self::$dbTable);
+            self::sendToFB($count . ' SQL queries took ' . $totalTimeSpent . ' seconds', self::$dbTable);
         }
 
         //Cache执行时间
         if (count(self::$cacheTable) > 0) {
-            self::sendToFb(self::$cacheTable, self::$cache_total_times);
+            self::sendToFB(self::$cache_total_times,self::$cacheTable );
         }
 
         // 服务执行时间
         if ($count = count(self::$serviceTable)) {
             $totalTimeSpent = array_sum(array_column(self::$serviceTable, 0));
             array_unshift(self::$serviceTable, array('耗时', 'Service', 'Method', '参数', '命中缓存|事务', 'Results'));
-            self::sendToFb("{$count}服务执行{$totalTimeSpent}秒", self::$serviceTable);
+            self::sendToFB("{$count}服务执行{$totalTimeSpent}秒", self::$serviceTable);
         }
 
     }
 
-    static function sendToFb($lable, $data = [])
+    /**
+     * 将数据发送到FirePhp table
+     *
+     * @param string $lable 表格标签，用于标识数据将发送到的Facebook表格。
+     * @param array $data 要发送的数据数组，默认为空数组。数组中的数据将被发送到指定的Facebook表格。
+     *
+     * @return void 函数没有返回值。
+     */
+    static function sendToFB($lable='', $data = [])
     {
         FB::table($lable, $data);
     }
