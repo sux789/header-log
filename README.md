@@ -1,8 +1,11 @@
-#  composer require sux789/header-log
-headers log with firephp
+# debug php by headers log with firephp
+
+install : composer require sux789/header-log
 
 ## base use HeaderLog::log($label, $vars)
-###  in short 
+
+### in short
+
 ```php
 /**
 * header log
@@ -29,7 +32,9 @@ function hlog(...$argv)
 ```
 
 ## use listen sql,cache etc.
-example in tp or lara
+
+example in tp or lara  etc.
+
 ```php 
 class HeaderLogMiddleware implements MiddlewareInterface
 {
