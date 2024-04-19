@@ -41,23 +41,23 @@ class HeaderLogMiddleware implements MiddlewareInterface
     public function handle(Request $request, \Closure $next)
     {
         // 是否启用头信息调试,如果以后正式环境需要启用，修改这个条件
-        $isEnableHeaderLog = env('app_debug');
+        $isEnableHeaderLog = true;//env('app_debug');
 
         $response = null;
 
         if ($isEnableHeaderLog) {
             ob_start();
-            \app\common\HeaderLog::start();
+            HeaderLog::start();
             \think\facade\Db::listen(function ($sql, $time, $explain) {
                 if (0 === stripos($sql, 'SHOW') or 0 === stripos($sql, 'CONNECT')) {
                     return false;
                 }
-                \app\common\HeaderLog::db($time, $sql, $explain);
+                HeaderLog::db($time, $sql, $explain);
             });
 
             $response = $next($request);
 
-            \app\common\HeaderLog::show();
+            HeaderLog::show();
         } else {
             $response = $next($request);
         }
