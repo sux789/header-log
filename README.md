@@ -1,4 +1,4 @@
-# header-log
+#  composer require sux789/header-log
 headers log with firephp
 
 ## base use HeaderLog::log($label, $vars)
@@ -29,4 +29,40 @@ function hlog(...$argv)
 ```
 
 ## use listen sql,cache etc.
+example in tp or lara
+```php 
+class HeaderLogMiddleware implements MiddlewareInterface
+{
+    /**
+     * @param Request $request
+     * @param \Closure $next
+     * @return mixed
+     */
+    public function handle(Request $request, \Closure $next)
+    {
+        // 是否启用头信息调试,如果以后正式环境需要启用，修改这个条件
+        $isEnableHeaderLog = env('app_debug');
 
+        $response = null;
+
+        if ($isEnableHeaderLog) {
+            ob_start();
+            \app\common\HeaderLog::start();
+            \think\facade\Db::listen(function ($sql, $time, $explain) {
+                if (0 === stripos($sql, 'SHOW') or 0 === stripos($sql, 'CONNECT')) {
+                    return false;
+                }
+                \app\common\HeaderLog::db($time, $sql, $explain);
+            });
+
+            $response = $next($request);
+
+            \app\common\HeaderLog::show();
+        } else {
+            $response = $next($request);
+        }
+
+        return $response;
+    }
+}
+```
